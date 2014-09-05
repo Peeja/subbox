@@ -10,7 +10,7 @@
             [subbox.youtube :as yt]))
 
 (def ^:private yt-api
-  (partial yt/api (env :google-api-key) "subbox"))
+  (partial yt/api "subbox"))
 
 (defn subscriptions [token]
   (yt/my-subscriptions (yt-api token)))

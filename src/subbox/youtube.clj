@@ -4,23 +4,20 @@
            (com.google.api.client.json.jackson2 JacksonFactory)
            (com.google.api.services.youtube YouTube$Builder)))
 
-(defn api [api-key app-name token]
-  {:api-key api-key
-   :youtube-api
+(defn api [app-name token]
    (let [http-transport      (NetHttpTransport.)
          json-factory        (JacksonFactory.)
          request-initializer (-> (Credential. (BearerToken/authorizationHeaderAccessMethod))
                                  (.setAccessToken token))]
      (-> (YouTube$Builder. http-transport json-factory request-initializer)
          (.setApplicationName app-name)
-         (.build)))})
+         (.build))))
 
 (defn username->cid [api username]
   "Fetches the channel ID for a YouTube username."
-  (-> (:youtube-api api)
+  (-> api
       .channels
       (.list "id")
-      (.setKey (:api-key api))
       (.setForUsername username)
       (.setFields "items(id)")
       .execute
@@ -30,10 +27,9 @@
 
 (defn my-subscriptions [api]
   "Fetches the subscriptions of the authenticated user."
-  (-> (:youtube-api api)
+  (-> api
       .subscriptions
       (.list "snippet")
-      (.setKey (:api-key api))
       (.setMine true)
       (.setOrder "alphabetical")
       (.setMaxResults 50)
