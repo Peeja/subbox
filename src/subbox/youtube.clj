@@ -13,27 +13,22 @@
          (.setApplicationName app-name)
          (.build))))
 
-(defn username->cid [api username]
-  "Fetches the channel ID for a YouTube username."
-  (-> api
-      .channels
-      (.list "id")
-      (.setForUsername username)
-      (.setFields "items(id)")
-      .execute
-      (get "items")
-      first
-      (get "id")))
-
 (defn my-subscriptions [api]
   "Fetches the subscriptions of the authenticated user."
-  (-> api
-      .subscriptions
-      (.list "snippet")
-      (.setMine true)
-      (.setOrder "alphabetical")
-      (.setMaxResults 50)
-      (.setFields "items(snippet/title)")
-      .execute
-      (get "items")
-      (->> (map #(get-in % ["snippet" "title"])))))
+  (loop [items-so-far []
+         page-token nil]
+    (let [response
+          (-> api
+              .subscriptions
+              (.list "snippet")
+              (.setMine true)
+              (.setOrder "alphabetical")
+              (.setMaxResults 50)
+              (.setPageToken page-token)
+              .execute)
+          next-page-token (get response "nextPageToken")
+          page-items      (get response "items")
+          items           (concat items-so-far page-items)]
+      (if next-page-token
+        (recur items next-page-token)
+        items))))

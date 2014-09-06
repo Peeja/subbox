@@ -13,7 +13,8 @@
   (partial yt/api "subbox"))
 
 (defn subscriptions [token]
-  (yt/my-subscriptions (yt-api token)))
+  (->> (yt/my-subscriptions (yt-api token))
+       (map #(get-in % ["snippet" "title"]))))
 
 (defn logged-in [identity]
   [:p "Logged in as " [:strong "???" #_(get-github-handle (:current identity))]
