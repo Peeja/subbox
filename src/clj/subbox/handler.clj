@@ -1,12 +1,13 @@
 (ns subbox.handler
-  (:require [compojure.core :refer [GET defroutes]]
+  (:require [cemerick.friend :as friend]
+            [compojure.core :refer [GET defroutes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
             [environ.core :refer [env]]
             [friend-oauth2.util :refer [format-config-uri]]
-            [cemerick.friend :as friend]
             [friend-oauth2.workflow :as oauth2]
             [hiccup.page :as h]
+            [ring.util.response :refer [file-response]]
             [subbox.youtube :as yt]))
 
 (def ^:private yt-api
@@ -24,17 +25,24 @@
    (map #(vector :li %) (subscriptions (get-in identity [:current :access-token])))])
 
 
-(defn front-page [req]
+(defn login-prompt [req]
   (h/html5
     [:head
      [:title "The Sub Box"]]
     [:body
-     (if-let [identity (friend/identity req)]
-       (logged-in identity)
-       [:h3 [:a {:href "/login"} "Login with Google"]])]))
+     [:a {:href "/login"} "Login with Google"]]))
+
+(defn index [req]
+  (if-let [identity (friend/identity req)]
+    (assoc-in (file-response "app.html" {:root "resources"})
+              [:headers "Content-Type"]
+              "text/html")
+    (login-prompt req)))
+
+
 
 (defroutes app-routes
-  (GET "/" req (front-page req))
+  (GET "/" req (index req))
   (route/resources "/")
   (route/not-found "Not Found"))
 
