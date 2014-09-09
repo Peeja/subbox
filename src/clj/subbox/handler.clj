@@ -1,31 +1,20 @@
 (ns subbox.handler
-  (:require [cemerick.friend :as friend]
-            [compojure.core :refer [GET defroutes]]
+  (:require [environ.core :refer [env]]
+            [ring.util.response :as resp]
+            [ring.middleware.transit :refer [wrap-transit-response]]
+            [compojure.core :refer [ANY GET defroutes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
-            [environ.core :refer [env]]
+            [cemerick.friend :as friend]
             [friend-oauth2.util :refer [format-config-uri]]
             [friend-oauth2.workflow :as oauth2]
             [hiccup.page :as h]
-            [ring.util.response :refer [file-response]]
             [subbox.youtube :as yt]))
 
 (def ^:private yt-api
   (partial yt/api "subbox"))
 
-(defn subscriptions [token]
-  (->> (yt/my-subscriptions (yt-api token))
-       (map #(get-in % ["snippet" "title"]))))
-
-(defn logged-in [identity]
-  [:p "Logged in as " [:strong "???" #_(get-github-handle (:current identity))]
-   " with Google identity" (:current identity)]
-  [:h1 "Subscriptions"]
-  [:ul
-   (map #(vector :li %) (subscriptions (get-in identity [:current :access-token])))])
-
-
-(defn login-prompt [req]
+(defn login-prompt []
   (h/html5
     [:head
      [:title "The Sub Box"]]
@@ -34,21 +23,33 @@
 
 (defn index [req]
   (if-let [identity (friend/identity req)]
-    (assoc-in (file-response "app.html" {:root "resources"})
+    (assoc-in (resp/file-response "app.html" {:root "resources"})
               [:headers "Content-Type"]
               "text/html")
-    (login-prompt req)))
+    (login-prompt)))
+
+(defn subscriptions [token]
+  (->> (yt/my-subscriptions (yt-api token))
+       (map #(get-in % ["snippet" "title"]))))
 
 
 
 (defroutes app-routes
   (GET "/" req (index req))
+
+  (GET "/subscriptions" req
+    (if-let [identity (friend/identity req)]
+      (subscriptions (get-in identity [:current :access-token]))
+      {:status 401 :body "Unauthorized"}))
+
+  (friend/logout (ANY "/logout" request (resp/redirect "/")))
+
   (route/resources "/")
   (route/not-found "Not Found"))
 
 (defn credential-fn
   [token]
-  {:identity token})
+  {:identity token :roles #{::user}})
 
 (def client-config
   {:client-id (env :google-client-id)
@@ -79,5 +80,6 @@
 
 (def app
   (-> app-routes
+      wrap-transit-response
       (friend/authenticate friend-config)
       handler/site))
