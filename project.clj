@@ -21,18 +21,9 @@
                  [prismatic/om-tools "0.3.2"]]
 
   :plugins [[lein-environ "1.0.0"]
-            ; [lein-ring "0.8.11"]
-            [dev.peeja/lein-ring "0.8.11-SNAPSHOT"] ; https://github.com/weavejester/lein-ring/pull/123
-            [lein-pprint "1.1.1"]
-            [lein-pdo "0.1.1"]
             [lein-cljsbuild "1.0.3"]]
 
-  :ring {:handler subbox.dev/app
-         :reload-paths ["src/clj" "src-dev/clj"]
-         :nrepl   {:start? true
-                   :middlewares [cemerick.piggieback/wrap-cljs-repl]}}
-
-  :source-paths ["src/clj" "src-dev/clj" "src/cljs"]
+  :source-paths ["src/clj" #_"src-dev/clj" "src/cljs"]
   :test-paths ["test/clj"]
   :resource-paths ["resources"]
 
@@ -45,8 +36,22 @@
                 :source-map true}}]}
 
   :profiles {:default [:base :system :user :provided :dev :local]
-             :dev {:dependencies [[javax.servlet/servlet-api "2.5"]
+
+             :dev-x {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]]
-                   :plugins [[com.cemerick/austin "0.1.5"]]
-                   :aliases {"go" ["pdo" "cljsbuild" "auto," "ring" "server-headless"]}}
+
+                   :plugins [[com.cemerick/austin "0.1.5"]
+                             ;; https://github.com/weavejester/lein-ring/pull/123
+                             #_[lein-ring "0.8.11"] [dev.peeja/lein-ring "0.8.11-SNAPSHOT"]
+                             [lein-pprint "1.1.1"]
+                             [lein-pdo "0.1.1"]]
+
+                   :aliases {"go" ["pdo" "cljsbuild" "auto," "ring" "server-headless"]}
+
+                   :ring {:handler      subbox.dev/app
+                          :reload-paths ["src/clj" "src-dev/clj"]
+                          :nrepl        {:start? true
+                                         :middlewares [cemerick.piggieback/wrap-cljs-repl]}}}
+
+
              :local {#_(override this in profiles.clj as needed)}})
