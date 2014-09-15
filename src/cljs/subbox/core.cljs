@@ -4,17 +4,21 @@
             [cognitect.transit :as t]
             [goog.dom :as gdom]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]))
+            [om-tools.core :refer-macros [defcomponent]]
+            [om-tools.dom :as dom :include-macros true]))
 
 (enable-console-print!)
 
 (def app-state
   (atom {:subscriptions []}))
 
-(defn app-view [app owner]
-  (om/component
-    (apply dom/ul nil
-      (map (partial dom/li nil) (:subscriptions app)))))
+(defcomponent channel-view [channel owner]
+  (render [_]
+    (->> channel :youtube.channel/snippet.title dom/li)))
+
+(defcomponent app-view [app owner]
+  (render [_]
+    (dom/ul (om/build-all channel-view (:subscriptions app)))))
 
 (om/root app-view app-state
   {:target (gdom/getElement "app")})

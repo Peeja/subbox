@@ -17,7 +17,8 @@
                  [org.clojure/clojurescript "0.0-2311"]
                  [com.cognitect/transit-cljs "0.8.188"]
                  [cljs-ajax "0.2.6"]
-                 [om "0.7.3"]]
+                 [om "0.7.3"]
+                 [prismatic/om-tools "0.3.2"]]
 
   :plugins [[lein-environ "1.0.0"]
             ; [lein-ring "0.8.11"]

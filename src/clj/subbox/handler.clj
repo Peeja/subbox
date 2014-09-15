@@ -39,7 +39,8 @@
 
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
-       (map #(get-in % ["snippet" "title"]))))
+       (map (fn [subscription]
+              {:youtube.channel/snippet.title (get-in subscription ["snippet" "title"])}))))
 
 
 
