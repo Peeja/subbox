@@ -1,14 +1,19 @@
 (ns subbox.handler
-  (:require [environ.core :refer [env]]
-            [ring.util.response :as resp]
-            [ring.middleware.transit :refer [wrap-transit-response]]
+  (:require [cemerick.austin.repls :refer [browser-connected-repl-js]]
+            [cemerick.friend :as friend]
+            [clojure.java.io :as io]
             [compojure.core :refer [ANY GET defroutes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
-            [cemerick.friend :as friend]
+            [crypto.random :as random]
+            [environ.core :refer [env]]
             [friend-oauth2.util :refer [format-config-uri]]
             [friend-oauth2.workflow :as oauth2]
             [hiccup.page :as h]
+            [net.cgrand.enlive-html :as enlive]
+            [ring.middleware.session.cookie :refer [cookie-store]]
+            [ring.middleware.transit :refer [wrap-transit-response]]
+            [ring.util.response :as resp]
             [subbox.youtube :as yt]))
 
 (def ^:private yt-api
@@ -21,11 +26,15 @@
     [:body
      [:a {:href "/login"} "Login with Google"]]))
 
-(defn index [req]
+(enlive/deftemplate index
+  (io/resource "app.html")
+  []
+  [:body] (enlive/append
+            (enlive/html [:script (browser-connected-repl-js)])))
+
+(defn or-login-prompt [handler req]
   (if-let [identity (friend/identity req)]
-    (assoc-in (resp/file-response "app.html" {:root "resources"})
-              [:headers "Content-Type"]
-              "text/html")
+    (handler)
     (login-prompt)))
 
 (defn subscriptions [token]
@@ -35,12 +44,13 @@
 
 
 (defroutes app-routes
-  (GET "/" req (index req))
+  (GET "/" req (or-login-prompt index req))
 
-  (GET "/subscriptions" req
-    (if-let [identity (friend/identity req)]
-      (subscriptions (get-in identity [:current :access-token]))
-      {:status 401 :body "Unauthorized"}))
+  (wrap-transit-response
+    (GET "/subscriptions" req
+      (if-let [identity (friend/identity req)]
+        (subscriptions (get-in identity [:current :access-token]))
+        {:status 401 :body "Unauthorized"})))
 
   (friend/logout (ANY "/logout" request (resp/redirect "/")))
 
@@ -77,9 +87,10 @@
                    :uri-config    uri-config
                    :credential-fn credential-fn})]})
 
+(defonce secret-token
+  (random/bytes 16))
 
 (def app
   (-> app-routes
-      wrap-transit-response
       (friend/authenticate friend-config)
-      handler/site))
+      (handler/site {:session {:store (cookie-store {:key secret-token})}})))
