@@ -1,46 +1,65 @@
 (ns subbox.handler
-  (:require [compojure.core :refer [GET defroutes]]
+  (:require [cemerick.austin.repls :refer [browser-connected-repl-js]]
+            [cemerick.friend :as friend]
+            [clojure.java.io :as io]
+            [compojure.core :refer [ANY GET defroutes]]
             [compojure.handler :as handler]
             [compojure.route :as route]
+            [crypto.random :as random]
             [environ.core :refer [env]]
             [friend-oauth2.util :refer [format-config-uri]]
-            [cemerick.friend :as friend]
             [friend-oauth2.workflow :as oauth2]
             [hiccup.page :as h]
+            [net.cgrand.enlive-html :as enlive]
+            [ring.middleware.session.cookie :refer [cookie-store]]
+            [ring.middleware.transit :refer [wrap-transit-response]]
+            [ring.util.response :as resp]
             [subbox.youtube :as yt]))
 
 (def ^:private yt-api
   (partial yt/api "subbox"))
 
-(defn subscriptions [token]
-  (->> (yt/my-subscriptions (yt-api token))
-       (map #(get-in % ["snippet" "title"]))))
-
-(defn logged-in [identity]
-  [:p "Logged in as " [:strong "???" #_(get-github-handle (:current identity))]
-   " with Google identity" (:current identity)]
-  [:h1 "Subscriptions"]
-  [:ul
-   (map #(vector :li %) (subscriptions (get-in identity [:current :access-token])))])
-
-
-(defn front-page [req]
+(defn login-prompt []
   (h/html5
     [:head
      [:title "The Sub Box"]]
     [:body
-     (if-let [identity (friend/identity req)]
-       (logged-in identity)
-       [:h3 [:a {:href "/login"} "Login with Google"]])]))
+     [:a {:href "/login"} "Login with Google"]]))
+
+(enlive/deftemplate index
+  (io/resource "app.html")
+  []
+  [:body] (enlive/append
+            (enlive/html [:script (browser-connected-repl-js)])))
+
+(defn or-login-prompt [handler req]
+  (if-let [identity (friend/identity req)]
+    (handler)
+    (login-prompt)))
+
+(defn subscriptions [token]
+  (->> (yt/my-subscriptions (yt-api token))
+       (map #(get-in % ["snippet" "title"]))))
+
+
 
 (defroutes app-routes
-  (GET "/" req (front-page req))
+  (GET "/" req (or-login-prompt index req))
+
+  (wrap-transit-response
+    (GET "/subscriptions" req
+      (if-let [identity (friend/identity req)]
+        (subscriptions (get-in identity [:current :access-token]))
+        {:status 401 :body "Unauthorized"})))
+
+  (friend/logout (ANY "/logout" request (resp/redirect "/")))
+
   (route/resources "/")
   (route/not-found "Not Found"))
 
 (defn credential-fn
   [token]
-  {:identity token})
+  {:identity token :roles #{::user}})
 
 (def client-config
   {:client-id (env :google-client-id)
@@ -62,14 +81,15 @@
 
 (def friend-config
   {:allow-anon? true
-   ; :login-uri "/login"
    :workflows   [(oauth2/workflow
                   {:client-config client-config
                    :uri-config    uri-config
                    :credential-fn credential-fn})]})
 
+(defonce secret-token
+  (random/bytes 16))
 
 (def app
   (-> app-routes
       (friend/authenticate friend-config)
-      handler/site))
+      (handler/site {:session {:store (cookie-store {:key secret-token})}})))
