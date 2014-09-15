@@ -81,7 +81,6 @@
 
 (def friend-config
   {:allow-anon? true
-   ; :login-uri "/login"
    :workflows   [(oauth2/workflow
                   {:client-config client-config
                    :uri-config    uri-config
