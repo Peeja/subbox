@@ -23,9 +23,12 @@
   :plugins [[lein-environ "1.0.0"]
             [lein-cljsbuild "1.0.3"]]
 
-  :source-paths ["src/clj" #_"src-dev/clj" "src/cljs"]
+  :source-paths ["src/clj" "src/cljs"]
   :test-paths ["test/clj"]
   :resource-paths ["resources"]
+
+  :uberjar-name "subbox.jar"
+  :main subbox.server
 
   :cljsbuild {
     :builds [{:source-paths ["src/cljs"]
@@ -36,6 +39,8 @@
                 :source-map true}}]}
 
   :profiles {:default [:base :system :user :provided :dev :local]
+
+             :uberjar {:aot [#"\Asubbox\."]}
 
              :dev-x {:dependencies [[javax.servlet/servlet-api "2.5"]
                                   [ring-mock "0.1.5"]]
@@ -52,6 +57,5 @@
                           :reload-paths ["src/clj" "src-dev/clj"]
                           :nrepl        {:start? true
                                          :middlewares [cemerick.piggieback/wrap-cljs-repl]}}}
-
 
              :local {#_(override this in profiles.clj as needed)}})
