@@ -1,8 +1,11 @@
 (ns subbox.core
-  (:require [clojure.browser.repl]
+  (:require [ajax.core :as aj]
+            [clojure.browser.repl]
+            [cognitect.transit :as t]
+            [figwheel.client :as fw :include-macros true]
             [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [figwheel.client :as fw :include-macros true]))
+            [om-tools.core :refer-macros [defcomponent]]
+            [om-tools.dom :as dom :include-macros true]))
 
 (def localhost? (-> js/window
                     (.-location)
@@ -10,15 +13,24 @@
                     (.indexOf "localhost")
                     (>= 0)))
 
-(defonce app-state (atom {:text "Hello world!"}))
+(defonce app-state
+  (atom {:subscriptions []}))
 
-(om/root
-  (fn [app owner]
-    (reify om/IRender
-      (render [_]
-        (dom/h1 nil (:text app)))))
-  app-state
+(defcomponent channel-view [channel owner]
+  (render [_]
+    (->> channel :youtube.channel/snippet.title dom/li)))
+
+(defcomponent app-view [app owner]
+  (render [_]
+    (dom/ul (om/build-all channel-view (:subscriptions app)))))
+
+(om/root app-view app-state
   {:target (. js/document (getElementById "app"))})
+
+(aj/GET "/subscriptions"
+        {:handler (fn [new-subscriptions-transit]
+                    (let [new-subscriptions (t/read (t/reader :json) new-subscriptions-transit)]
+                      (reset! app-state {:subscriptions new-subscriptions})))})
 
 (if localhost?
   (enable-console-print!))
