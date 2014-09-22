@@ -22,7 +22,8 @@
 
 (if-dev-mode
  (enlive/deftemplate page (io/resource "index.html") []
-   [:body] (enlive/append (enlive/html [:script (browser-connected-repl-js)])))
+   [:body] (enlive/append (enlive/html [:script (browser-connected-repl-js)]
+                                       [:script "goog.require('subbox.dev');"])))
  (enlive/deftemplate page (io/resource "index.html") []))
 
 (defn browser-repl []
