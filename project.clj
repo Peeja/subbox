@@ -39,7 +39,7 @@
                                    :pretty-print  true
                                    :source-map    true}}]}
 
-  :profiles {:dev {:repl-options {:init-ns subbox.server}
+  :profiles {:dev {:repl-options {:init-ns subbox.dev}
                    :plugins [[lein-figwheel "0.1.3-SNAPSHOT"]
                              [lein-pdo "0.1.1"]]
                    :figwheel {:http-server-root "public"
