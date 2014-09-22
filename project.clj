@@ -31,9 +31,16 @@
                                    :pretty-print  true
                                    :source-map    true}}]}
 
-  :profiles {:dev {:repl-options {:init-ns subbox.server}
-                   :plugins [[lein-figwheel "0.1.3-SNAPSHOT"]]
+  :profiles {:dev {:repl-options {:init-ns subbox.server
+                                  :init (run)}
+                   :plugins [[lein-figwheel "0.1.3-SNAPSHOT"]
+                             [lein-pdo "0.1.1"]]
                    :figwheel {:http-server-root "public"
-                              :port 3449 }}
+                              :port 3449 }
+                   :aliases {"go" ["pdo" "repl" ":headless," "figwheel"]}}
 
-             :production {:env {:production true}}})
+             :production {:env {:production true}}
+
+             ;; Define :local in profiles.clj as needed.
+             :default [:base :system :user :provided :dev :local]
+             :local {}})
