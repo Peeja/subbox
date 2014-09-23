@@ -1,6 +1,5 @@
 (ns subbox.app
-  (:require [cemerick.austin.repls :refer [browser-connected-repl-js]]
-            [cemerick.friend :as friend]
+  (:require [cemerick.friend :as friend]
             [clojure.java.io :as io]
             [compojure.core :refer [ANY GET defroutes]]
             [compojure.handler :as handler]
@@ -16,23 +15,15 @@
             [ring.util.response :as resp]
             [subbox.youtube :as yt]))
 
-(defmacro if-dev-mode [then-body else-body]
-  (if (not (env :production)) then-body else-body))
+(def
+  ^{:dynamic true
+    :doc "An Enlive transformation function which will be applied to the body
+         of the main app page. (Used for development tricks.)"}
+  *body-transform*
+  identity)
 
-(if-dev-mode
- (enlive/deftemplate page (io/resource "index.html") []
-   [:body] (enlive/append (enlive/html [:script (browser-connected-repl-js)]
-                                       [:script "goog.require('subbox.dev');"])))
- (enlive/deftemplate page (io/resource "index.html") []))
-
-(defn browser-repl []
-  (let [repl-env (reset! cemerick.austin.repls/browser-repl-env
-                         (cemerick.austin/repl-env))]
-    (cemerick.austin.repls/cljs-repl repl-env)))
-
-
-(def ^:private yt-api
-  (partial yt/api "subbox"))
+(enlive/deftemplate page (io/resource "index.html") []
+  [:body] *body-transform*)
 
 (defn login-prompt []
   (h/html5
@@ -45,6 +36,9 @@
   (if-let [identity (friend/identity req)]
     (handler)
     (login-prompt)))
+
+(def ^:private yt-api
+  (partial yt/api "subbox"))
 
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
