@@ -6,23 +6,24 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2311"]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [cljs-ajax "0.2.6"]
-                 [com.cemerick/friend "0.2.1"]
+                 [com.cemerick/friend "0.2.1" :exclusions [org.clojure/core.cache]]
                  [com.cognitect/transit-cljs "0.8.188"]
                  [com.google.api-client/google-api-client "1.19.0"]
                  [com.google.apis/google-api-services-youtube "v3-rev114-1.19.0"]
                  [compojure "1.1.8"]
                  [enlive "1.1.5"]
                  [environ "1.0.0"]
-                 [figwheel "0.1.3-SNAPSHOT"]
+                 [figwheel "0.1.4-SNAPSHOT"]
                  [friend-oauth2 "0.1.1"]
                  [hiccup "1.0.5"]
                  [om "0.7.3"]
-                 [prismatic/om-tools "0.3.2"]
+                 [prismatic/om-tools "0.3.3"]
                  [ring "1.2.2"]
                  [ring-transit "0.1.2"]]
 
-  :plugins [[com.cemerick/austin "0.1.5-SNAPSHOT"]
+  :plugins [[com.cemerick/austin "0.1.5-SNAPSHOT" :exclusions [org.clojure/clojure]]
             [lein-cljsbuild "1.0.3"]
             [lein-environ "1.0.0"]]
 
@@ -40,7 +41,7 @@
                                    :source-map    true}}]}
 
   :profiles {:dev {:repl-options {:init-ns subbox.dev}
-                   :plugins [[lein-figwheel "0.1.3-SNAPSHOT"]
+                   :plugins [[lein-figwheel "0.1.4-SNAPSHOT"]
                              [lein-pdo "0.1.1"]]
                    :figwheel {:http-server-root "public"
                               :port 3449 }
