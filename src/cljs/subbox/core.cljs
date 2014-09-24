@@ -10,12 +10,12 @@
             [om-tools.dom :as dom :include-macros true]))
 
 (defonce app-state
-  (atom {:selected nil
+  (atom {:selected-ref nil
          :subscriptions []}))
 
 
 (def Channel
-  {(s/optional-key :selected?)    js/Boolean
+  {:selected?                     js/Boolean
    :youtube.channel/id            js/String
    :youtube.channel/snippet.title js/String})
 
@@ -23,36 +23,34 @@
 (defcomponentk channel-view
   [[:data {selected? false}
           [:youtube.channel/id :as id]
-          [:youtube.channel/snippet.title :as title]] ;:- Channel ; Schema validation isn't working for some reason.
+          [:youtube.channel/snippet.title :as title]] :- Channel
    [:opts select]]
   (render [_]
     (dom/li {:class (when selected? "selected")
              :on-click #(put! select [:youtube.channel/id id])}
             title)))
 
+
 (defcomponentk app-view
-  [[:data selected subscriptions :as app] state]
+  [[:data selected-ref subscriptions :as app] state]
 
   (init-state [_]
     {:select (chan)})
 
   (will-mount [_]
     (go-loop []
-      (let [new-selected (<! (:select @state))]
-        (om/transact! app :selected (constantly new-selected))
+      (let [new-selected-ref (<! (:select @state))]
+        (om/transact! app :selected-ref (constantly new-selected-ref))
         (recur))))
 
   (render [_]
-    (let [selected? #(some #{selected} %)
-          [selected-index selected-subscription] (->> subscriptions
-                                                      (map #(when (selected? %2) [%1 %2]) (range))
-                                                      (filter (complement nil?))
-                                                      first)
-          subscriptions-with-selected (if selected-subscription
-                                        (assoc-in subscriptions [selected-index :selected? true])
-                                        subscriptions)]
+    (let [selected? #(some #{selected-ref} %)
+          selected-subscription (->> subscriptions
+                                     (filter selected?)
+                                     first)
+          subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) subscriptions)]
       (dom/div
-        (dom/p "Currently selected: " (get selected-subscription :youtube.channel/snippet.title "Nothing.") " (#" selected-index ") ")
+        (dom/p "Currently selected: " (get selected-subscription :youtube.channel/snippet.title "Nothing."))
         (dom/ul (om/build-all channel-view
                               subscriptions-with-selected
                               {:opts (select-keys @state [:select])}))))))
