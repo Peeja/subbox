@@ -11,8 +11,9 @@
             [hiccup.page :as h]
             [net.cgrand.enlive-html :as enlive]
             [ring.middleware.session.cookie :refer [cookie-store]]
-            [ring.middleware.transit :refer [wrap-transit-response]]
+            [ring.middleware.transit :as ring-transit]
             [ring.util.response :as resp]
+            [cognitect.transit :as transit]
             [subbox.youtube :as yt]))
 
 (def
@@ -37,14 +38,31 @@
     (handler)
     (login-prompt)))
 
+
+
 (def ^:private yt-api
   (partial yt/api "subbox"))
 
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
        (map (fn [subscription]
-              {:youtube.channel/snippet.title (get-in subscription ["snippet" "title"])}))))
+              ;; NOTE: We're faking this by pulling info off of the
+              ;; subscription resource, even though we're pretending to be
+              ;; getting a channel resource. This will tide us over for the moment.
+              {:youtube.channel/id            (get-in subscription ["snippet" "resourceId" "channelId"])
+               :youtube.channel/snippet.title (get-in subscription ["snippet" "title"])}))))
 
+
+(def google-time-writer
+  (let [as-int (fn [v] (.getValue v))]
+  (transit/write-handler "m" as-int (comp str as-int))))
+
+(defn wrap-transit-response
+  [handler & [{:as options}]]
+  (ring-transit/wrap-transit-response handler
+                                      (assoc-in options
+                                                [:opts :handlers com.google.api.client.util.DateTime]
+                                                google-time-writer)))
 
 (defroutes app-routes
   (GET "/" req (or-login-prompt page req))

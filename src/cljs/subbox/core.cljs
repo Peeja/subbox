@@ -1,22 +1,30 @@
 (ns subbox.core
+  (:require-macros [cljs.core.async.macros :refer [go-loop]])
   (:require [ajax.core :as aj]
             [clojure.browser.repl]
             [cljs.core.async :as async :refer [chan put!]]
             [cognitect.transit :as t]
+            [schema.core :refer-macros [defschema]]
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
-            [om-tools.dom :as dom :include-macros true])
-  (:require-macros [cljs.core.async.macros :refer [go-loop]]))
+            [om-tools.dom :as dom :include-macros true]))
 
 (defonce app-state
-  (atom {:selected ""
+  (atom {:selected nil
          :subscriptions []}))
 
+
+(def Channel
+  {:youtube.channel/id            js/String
+   :youtube.channel/snippet.title js/String})
+
+
 (defcomponentk channel-view
-  [[:data :as channel] [:opts select]]
+  [[:data :as channel] :- Channel
+   [:opts select]]
   (render [_]
-    (let [title (->> channel :youtube.channel/snippet.title )]
-      (dom/li {:on-click #(put! select title)} title))))
+    (dom/li {:on-click #(put! select (:youtube.channel/id channel))}
+            (:youtube.channel/snippet.title channel))))
 
 (defcomponentk app-view
   [[:data selected subscriptions :as app] state]
@@ -34,6 +42,7 @@
 
 (om/root app-view app-state
   {:target (. js/document (getElementById "app"))})
+
 
 (aj/GET "/subscriptions"
         {:handler (fn [new-subscriptions-transit]

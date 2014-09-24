@@ -9,6 +9,7 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [cljs-ajax "0.2.6"]
                  [com.cemerick/friend "0.2.1" :exclusions [org.clojure/core.cache]]
+                 [com.cognitect/transit-clj "0.8.259"]
                  [com.cognitect/transit-cljs "0.8.188"]
                  [com.google.api-client/google-api-client "1.19.0"]
                  [com.google.apis/google-api-services-youtube "v3-rev114-1.19.0"]
@@ -20,6 +21,7 @@
                  [hiccup "1.0.5"]
                  [om "0.7.3"]
                  [prismatic/om-tools "0.3.3"]
+                 [prismatic/schema "0.3.0"]
                  [ring "1.2.2"]
                  [ring-transit "0.1.2"]]
 
