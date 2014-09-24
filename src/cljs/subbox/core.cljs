@@ -20,11 +20,11 @@
 
 
 (defcomponentk channel-view
-  [[:data :as channel] :- Channel
+  [[:data [:youtube.channel/id :as id]
+          [:youtube.channel/snippet.title :as title]] :- Channel
    [:opts select]]
   (render [_]
-    (dom/li {:on-click #(put! select (:youtube.channel/id channel))}
-            (:youtube.channel/snippet.title channel))))
+    (dom/li {:on-click #(put! select id)} title)))
 
 (defcomponentk app-view
   [[:data selected subscriptions :as app] state]
@@ -36,9 +36,10 @@
         (om/transact! app :selected (constantly new-selected))
         (recur))))
   (render [_]
-    (dom/div
-      (dom/p "Currently selected: " selected)
-      (dom/ul (om/build-all channel-view subscriptions {:opts (select-keys @state [:select])})))))
+    (let [selected-subscription (first (filter #(= (:youtube.channel/id %) selected) subscriptions))]
+      (dom/div
+        (dom/p "Currently selected: " (get selected-subscription :youtube.channel/snippet.title "Nothing."))
+        (dom/ul (om/build-all channel-view subscriptions {:opts (select-keys @state [:select])}))))))
 
 (om/root app-view app-state
   {:target (. js/document (getElementById "app"))})
