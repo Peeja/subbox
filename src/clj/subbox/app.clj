@@ -1,7 +1,7 @@
 (ns subbox.app
   (:require [cemerick.friend :as friend]
             [clojure.java.io :as io]
-            [compojure.core :refer [ANY GET defroutes]]
+            [compojure.core :refer [ANY GET defroutes context]]
             [compojure.handler :as handler]
             [compojure.route :as route]
             [crypto.random :as random]
@@ -45,12 +45,24 @@
 
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
-       (map (fn [subscription]
+       (map (fn [{{{id "channelId"} "resourceId" title "title"} "snippet"}]
               ;; NOTE: We're faking this by pulling info off of the
               ;; subscription resource, even though we're pretending to be
               ;; getting a channel resource. This will tide us over for the moment.
-              {:youtube.channel/id            (get-in subscription ["snippet" "resourceId" "channelId"])
-               :youtube.channel/snippet.title (get-in subscription ["snippet" "title"])}))))
+              {:youtube.channel/id            id
+               :youtube.channel/snippet.title title
+               :videos {:list/items []
+                        :list/next (str "/subscriptions/" id "/videos")}}))))
+
+(defn videos [token channel-id]
+  (let [items
+        (->> (yt/videos-in-channel (yt-api token) channel-id)
+             (map (fn [video]
+                    {:youtube.video/id            (get-in video ["snippet" "resourceId" "videoId"])
+                     :youtube.video/snippet.title (get-in video ["snippet" "title"])})))]
+    ;; This :body is unfortunate and inconsistent.
+    {:body {:list/items items
+            :list/next nil}}))
 
 
 (def google-time-writer
@@ -68,10 +80,15 @@
   (GET "/" req (or-login-prompt page req))
 
   (wrap-transit-response
-    (GET "/subscriptions" req
-      (if-let [identity (friend/identity req)]
-        (subscriptions (get-in identity [:current :access-token]))
-        {:status 401 :body "Unauthorized"})))
+    (context "/subscriptions" []
+      (GET "/" req
+        (if-let [identity (friend/identity req)]
+          (subscriptions (get-in identity [:current :access-token]))
+          {:status 401 :body "Unauthorized"}))
+      (GET "/:id/videos" [id :as req]
+        (if-let [identity (friend/identity req)]
+          (videos (get-in identity [:current :access-token]) id)
+          {:status 401 :body "Unauthorized"}))))
 
   (friend/logout (ANY "/logout" request (resp/redirect "/")))
 

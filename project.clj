@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2311"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [cljs-ajax "0.2.6"]
+                 [cljs-ajax "0.3.0"]
                  [com.cemerick/friend "0.2.1" :exclusions [org.clojure/core.cache]]
                  [com.cognitect/transit-clj "0.8.259"]
                  [com.cognitect/transit-cljs "0.8.188"]
