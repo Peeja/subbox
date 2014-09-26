@@ -66,6 +66,8 @@
 
              :production {:env {:production true}}
 
+             :uberjar {:hooks [leiningen.garden]}
+
              ;; Define :local in profiles.clj as needed.
              :default [:base :system :user :provided :dev :local]
              :local {}})
