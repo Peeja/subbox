@@ -27,7 +27,11 @@
 
   :plugins [[com.cemerick/austin "0.1.5-SNAPSHOT" :exclusions [org.clojure/clojure]]
             [lein-cljsbuild "1.0.3"]
-            [lein-environ "1.0.0"]]
+            [lein-environ "1.0.0"]
+
+            ;; https://github.com/noprompt/lein-garden/pull/23
+            #_[lein-garden "0.2.1"]
+            [org.clojars.peeja/lein-garden "0.2.2-SNAPSHOT"]]
 
   :min-lein-version "2.0.0"
 
@@ -36,18 +40,27 @@
   :uberjar-name "subbox.jar"
 
   :cljsbuild {:builds [{:source-paths ["src/cljs"]
-                        :compiler {:output-to     "resources/public/app.js"
-                                   :output-dir    "resources/public/out"
+                        :compiler {:output-to     "resources/public/js/app.js"
+                                   :output-dir    "resources/public/js/out"
                                    :optimizations :none
                                    :pretty-print  true
                                    :source-map    true}}]}
+
+  :garden {:builds [{:id "screen"
+                     :source-paths ["src/clj"]
+                     :stylesheet subbox.styles/screen
+                     :compiler {:output-to "resources/public/css/screen.css"
+                                :pretty-print? false}}]}
 
   :profiles {:dev {:repl-options {:init-ns subbox.dev}
                    :plugins [[lein-figwheel "0.1.4-SNAPSHOT"]
                              [lein-pdo "0.1.1"]]
                    :figwheel {:http-server-root "public"
-                              :port 3449 }
-                   :aliases {"go" ["with-profile" "+go" "pdo" "repl" ":headless," "figwheel"]}}
+                              :port 3449
+                              :css-dirs ["resources/public/css"]}
+                   :aliases {"go" ["with-profile" "+go" "pdo" "repl" ":headless,"
+                                                              "figwheel,"
+                                                              "garden" "auto"]}}
 
              :go {:repl-options {:init (run)}}
 
