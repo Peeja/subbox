@@ -30,12 +30,14 @@
   "A channel, as represented in the subscription list."
   [[:data {selected? false}
           [:youtube.channel/id :as id]
-          [:youtube.channel/snippet.title :as title]] ; :- ChannelListItem
+          [:youtube.channel/snippet.title :as title]
+          [:youtube.channel/snippet.thumbnails :as thumbnails]] ; :- ChannelListItem
    [:opts select]]
   (render [_]
     (dom/li {:class (when selected? "selected")
              :on-click #(put! select [:youtube.channel/id id])}
-            title)))
+            (dom/img {:class "thumbnail" :src (-> thumbnails :default :url)})
+            (dom/span {:class "title"} title))))
 
 
 (defn ajax-get
@@ -58,6 +60,19 @@
       (om/transact! list-cursor
                     #(update-in next-list [:list/items] (partial into (:list/items %)))))))
 
+(defcomponentk video-list-item-view
+  [[:data [:youtube.video/snippet.title :as title]
+          [:youtube.video/snippet.description :as description]
+          [:youtube.video/snippet.thumbnails :as thumbnails]]]
+  (render [_]
+    (dom/li
+      (dom/article {:class "video"}
+        (println thumbnail-url)
+        (dom/img {:class "thumbnail" :src (-> thumbnails :medium :url)})
+        (dom/div {:class "info"}
+          (dom/h1 title)
+          (dom/p description))))))
+
 (defcomponentk main-view
   "The main area of the page, including the list of videos."
   [[:data [:youtube.channel/snippet.title :as title]
@@ -65,10 +80,10 @@
    (render [_]
      (when-not (seq (:list/items videos))
        (fetch! videos))
-     (dom/section
+     (dom/section {:class "main"}
        (dom/h1 title)
-       (dom/ul
-         (map #(dom/li (:youtube.video/snippet.title %)) (:list/items videos))))))
+       (dom/ul {:class "videos"}
+         (om/build-all video-list-item-view (:list/items videos))))))
 
 
 (defcomponentk app-view
@@ -90,8 +105,9 @@
                                      (filter selected?)
                                      first)
           subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) subscriptions)]
-      (dom/div
-        (dom/ul (om/build-all channel-list-item-view
+      (dom/div {:class "app"}
+        (dom/ul {:class "subscriptions"}
+                (om/build-all channel-list-item-view
                               subscriptions-with-selected
                               {:opts (select-keys @state [:select])}))
         (when selected-subscription

@@ -45,21 +45,27 @@
 
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
-       (map (fn [{{{id "channelId"} "resourceId" title "title"} "snippet"}]
+       (map (fn [{{{id :channelId} :resourceId :as snippet} :snippet}]
               ;; NOTE: We're faking this by pulling info off of the
               ;; subscription resource, even though we're pretending to be
               ;; getting a channel resource. This will tide us over for the moment.
-              {:youtube.channel/id            id
-               :youtube.channel/snippet.title title
+              {:youtube.channel/id                 id
+               :youtube.channel/snippet.title      (:title snippet)
+               :youtube.channel/snippet.thumbnails (:thumbnails snippet)
                :videos {:list/items []
                         :list/next (str "/subscriptions/" id "/videos")}}))))
 
 (defn videos [token channel-id]
   (let [items
-        (->> (yt/videos-in-channel (yt-api token) channel-id)
-             (map (fn [video]
-                    {:youtube.video/id            (get-in video ["snippet" "resourceId" "videoId"])
-                     :youtube.video/snippet.title (get-in video ["snippet" "title"])})))]
+        (->> (yt/playlist-items-in-channel (yt-api token) channel-id)
+             (map (fn [{{{id :videoId} :resourceId :as snippet} :snippet}]
+                    ;; NOTE: We're faking this by pulling info off of the
+                    ;; playlist-item resource, even though we're pretending to be
+                    ;; getting a video resource. This will tide us over for the moment.
+                    {:youtube.video/id                  id
+                     :youtube.video/snippet.title       (:title snippet)
+                     :youtube.video/snippet.description (:description snippet)
+                     :youtube.video/snippet.thumbnails  (:thumbnails snippet)})))]
     ;; This :body is unfortunate and inconsistent.
     {:body {:list/items items
             :list/next nil}}))

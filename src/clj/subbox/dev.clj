@@ -21,7 +21,7 @@
   (-> app/app
       (wrap-with-body-transform add-dev-scripts)
       wrap-stacktrace
-      wrap-reload))
+      (wrap-reload {:dirs ["src/clj"]})))
 
 (defn run []
   (reset! repls/browser-repl-env

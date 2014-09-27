@@ -47,7 +47,7 @@
                                    :source-map    true}}]}
 
   :garden {:builds [{:id "screen"
-                     :source-paths ["src/clj"]
+                     :source-paths ["src/styles"]
                      :stylesheet subbox.styles/screen
                      :compiler {:output-to "resources/public/css/screen.css"
                                 :pretty-print? false}}]}
