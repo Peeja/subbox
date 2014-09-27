@@ -2,6 +2,7 @@
   (:require-macros [cljs.core.async.macros :refer [go go-loop]])
   (:require [ajax.core :as aj]
             [clojure.browser.repl]
+            [clojure.string :as string]
             [cljs.core.async :as async :refer [chan put!]]
             [cognitect.transit :as t]
             [schema.core :as s :refer-macros [defschema]]
@@ -12,6 +13,41 @@
 (defonce app-state
   (atom {:selected-ref nil
          :subscriptions []}))
+
+(defn ajax-get
+  "Makes a GET request. Returns a channel which will deliver the result.
+  Currently assumes the response is transit, and parses it."
+  [url]
+  (let [c (chan)]
+    (aj/GET url
+            {:handler (fn [response-transit]
+                        (->> response-transit
+                             (put! c)))})
+    c))
+
+(defn fetch!
+  "Fetches data for a list."
+  [list-cursor]
+  (go
+    (let [next-url (:list/next @list-cursor)
+          next-list (<! (ajax-get next-url))]
+      (om/transact! list-cursor
+                    #(update-in next-list [:list/items] (partial into (:list/items %)))))))
+
+(defn preserve-line-breaks
+  [text]
+  (interpose (dom/br nil) (string/split text #"\n")))
+
+(defn paragraphs
+  [text]
+  (->> (string/split text #"\n\s*\n")
+       (map #(dom/p (preserve-line-breaks %)))))
+
+
+(defn thumbnail
+  [{:keys [url width height] :as thmb}]
+  (dom/img {:class "thumbnail" :src url :width width :height height}))
+
 
 (defschema List
   {:list/items []
@@ -36,29 +72,8 @@
   (render [_]
     (dom/li {:class (when selected? "selected")
              :on-click #(put! select [:youtube.channel/id id])}
-            (dom/img {:class "thumbnail" :src (-> thumbnails :default :url)})
+            (thumbnail (:default thumbnails))
             (dom/span {:class "title"} title))))
-
-
-(defn ajax-get
-  "Makes a GET request. Returns a channel which will deliver the result.
-  Currently assumes the response is transit, and parses it."
-  [url]
-  (let [c (chan)]
-    (aj/GET url
-            {:handler (fn [response-transit]
-                        (->> response-transit
-                             (put! c)))})
-    c))
-
-(defn fetch!
-  "Fetches data for a list."
-  [list-cursor]
-  (go
-    (let [next-url (:list/next @list-cursor)
-          next-list (<! (ajax-get next-url))]
-      (om/transact! list-cursor
-                    #(update-in next-list [:list/items] (partial into (:list/items %)))))))
 
 (defcomponentk video-list-item-view
   [[:data [:youtube.video/snippet.title :as title]
@@ -67,11 +82,10 @@
   (render [_]
     (dom/li
       (dom/article {:class "video"}
-        (println thumbnail-url)
-        (dom/img {:class "thumbnail" :src (-> thumbnails :medium :url)})
+        (thumbnail (:medium thumbnails))
         (dom/div {:class "info"}
-          (dom/h1 title)
-          (dom/p description))))))
+          (dom/h1 {:class "title"} title)
+          (dom/div {:class "description"} (paragraphs description)))))))
 
 (defcomponentk main-view
   "The main area of the page, including the list of videos."
