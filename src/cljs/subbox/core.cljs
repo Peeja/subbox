@@ -11,7 +11,8 @@
             [om-tools.dom :as dom :include-macros true]))
 
 (defonce app-state
-  (atom {:selected-ref nil
+  (atom {:selected-channel-ref nil
+         :watching-video nil
          :subscriptions []}))
 
 (defn ajax-get
@@ -68,19 +69,21 @@
           [:youtube.channel/id :as id]
           [:youtube.channel/snippet.title :as title]
           [:youtube.channel/snippet.thumbnails :as thumbnails]] ; :- ChannelListItem
-   [:opts select]]
+   shared]
   (render [_]
     (dom/li {:class (when selected? "selected")
-             :on-click #(put! select [:youtube.channel/id id])}
+             :on-click #(put! (:select shared) [:youtube.channel/id id])}
             (thumbnail (:default thumbnails))
             (dom/span {:class "title"} title))))
 
 (defcomponentk video-list-item-view
   [[:data [:youtube.video/snippet.title :as title]
           [:youtube.video/snippet.description :as description]
-          [:youtube.video/snippet.thumbnails :as thumbnails]]]
+          [:youtube.video/snippet.thumbnails :as thumbnails]
+          :as video]
+   [:shared watching]]
   (render [_]
-    (dom/li
+    (dom/li {:on-click #(put! watching video)}
       (dom/article {:class "video"}
         (thumbnail (:medium thumbnails))
         (dom/div {:class "info"}
@@ -100,36 +103,65 @@
          (om/build-all video-list-item-view (:list/items videos))))))
 
 
+(defn direct-event?
+  "Returns true iff the given event occurred directly on the element where the
+  listener was attached. In other words, returns false iff the event bubbled
+  from a child element."
+  [event]
+  (= (aget event "target")
+     (aget event "currentTarget")))
+
+(defcomponentk watch-screen-view
+  [[:data [:youtube.video/snippet.title :as title]
+          :as video]
+   shared]
+  (render [_]
+          (dom/div {:class "watch-screen"
+                    :on-click #(when (direct-event? %) (put! (:watching shared) :none))}
+                   (dom/div {:class "player"}
+                            "Now playing: " title))))
+
+
 (defcomponentk app-view
   "The entire application."
-  [[:data selected-ref subscriptions :as app] state]
-
-  (init-state [_]
-    {:select (chan)})
+  [[:data selected-channel-ref
+          watching-video
+          subscriptions :as app]
+   shared]
 
   (will-mount [_]
     (go-loop []
-      (let [new-selected-ref (<! (:select @state))]
-        (om/update! app :selected-ref new-selected-ref)
+      (let [new-selected-channel-ref (<! (:select shared))]
+        (om/update! app :selected-channel-ref new-selected-channel-ref)
+        (recur)))
+    (go-loop []
+      (let [new-watching-video (<! (:watching shared))]
+        (om/update! app :watching-video (when (not= :none new-watching-video) new-watching-video))
         (recur))))
 
   (render [_]
-    (let [selected? #(some #{selected-ref} %)
+    (let [selected? #(some #{selected-channel-ref} %)
           selected-subscription (->> subscriptions
                                      (filter selected?)
                                      first)
           subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) subscriptions)]
+
       (dom/div {:class "app"}
+
+        (when watching-video
+          (->watch-screen-view watching-video))
+
         (dom/ul {:class "subscriptions"}
                 (om/build-all channel-list-item-view
-                              subscriptions-with-selected
-                              {:opts (select-keys @state [:select])}))
+                              subscriptions-with-selected))
         (when selected-subscription
-          (om/build main-view selected-subscription))))))
+          (->main-view selected-subscription))))))
 
 
 (om/root app-view app-state
-  {:target (. js/document (getElementById "app"))})
+  {:target (. js/document (getElementById "app"))
+   :shared {:select (chan)
+            :watching (chan)}})
 
 
 (aj/GET "/subscriptions"

@@ -29,7 +29,7 @@
 
   [:.app
    {:position :absolute
-    :top (px 30)
+    :top 0
     :bottom 0
     :right 0
     :left 0}
@@ -73,7 +73,8 @@
     [:>ul.videos
      block-list
      [:>li
-      {:margin {:bottom (px 40)}}
+      {:cursor :pointer
+       :margin {:bottom (px 40)}}
       [:article.video
        clearfix
        [:>img.thumbnail
@@ -90,4 +91,23 @@
         [:>.description
           {:line-height (px 20)}
          [:>p
-          {:margin {:bottom (px 10)}}]]]]]]]])
+          {:margin {:bottom (px 10)}}]]]]]]]
+
+   [:>.watch-screen
+    {:position :absolute
+     :z-index 10
+     :top 0
+     :bottom 0
+     :left 0
+     :right 0
+     :background (rgba 0 0 0 0.7)}
+    [:>.player
+     {:position :absolute
+      :top 0
+      :bottom 0
+      :left 0
+      :right 0
+      :background :green
+      :width (percent 50)
+      :height (percent 50)
+      :margin :auto}]]])
