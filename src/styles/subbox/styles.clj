@@ -28,8 +28,11 @@
            :size (px 16)}}]
 
   [:.app
-   {:position :relative
-    :margin {:top (px 30)}}
+   {:position :absolute
+    :top (px 30)
+    :bottom 0
+    :right 0
+    :left 0}
 
    [:>ul.subscriptions
     block-list
@@ -37,7 +40,8 @@
      :top 0
      :bottom 0
      :left 0
-     :width subscriptions-bar-width}
+     :width subscriptions-bar-width
+     :overflow :auto}
 
     [:>li
      {:cursor :pointer
@@ -58,7 +62,8 @@
      :top 0
      :bottom 0
      :left subscriptions-bar-width
-     :right 0}
+     :right 0
+     :overflow :auto}
 
     [:>h1
      heading-font
