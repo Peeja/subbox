@@ -1,6 +1,7 @@
 (ns subbox.styles
-  (:require [garden.def :refer [defstyles]]
-            [garden.units :refer [px]]))
+  (:require [garden.color :refer [rgba]]
+            [garden.def :refer [defstyles]]
+            [garden.units :refer [px percent]]))
 
 
 (def subscriptions-bar-width (px 300))
@@ -29,7 +30,7 @@
 
   [:.app
    {:position :absolute
-    :top (px 30)
+    :top 0
     :bottom 0
     :right 0
     :left 0}
@@ -73,7 +74,8 @@
     [:>ul.videos
      block-list
      [:>li
-      {:margin {:bottom (px 40)}}
+      {:cursor :pointer
+       :margin {:bottom (px 40)}}
       [:article.video
        clearfix
        [:>img.thumbnail
@@ -90,4 +92,22 @@
         [:>.description
           {:line-height (px 20)}
          [:>p
-          {:margin {:bottom (px 10)}}]]]]]]]])
+          {:margin {:bottom (px 10)}}]]]]]]]
+
+   [:>.watch-screen
+    {:position :absolute
+     :z-index 10
+     :top 0
+     :bottom 0
+     :left 0
+     :right 0
+     :background (rgba 0 0 0 0.7)}
+    [:>iframe
+     {:position :absolute
+      :top 0
+      :bottom 0
+      :left 0
+      :right 0
+      :width (px 960)
+      :height (px 585)
+      :margin :auto}]]])
