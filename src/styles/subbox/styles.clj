@@ -1,6 +1,7 @@
 (ns subbox.styles
-  (:require [garden.def :refer [defstyles]]
-            [garden.units :refer [px]]))
+  (:require [garden.color :refer [rgba]]
+            [garden.def :refer [defstyles]]
+            [garden.units :refer [px percent]]))
 
 
 (def subscriptions-bar-width (px 300))
@@ -101,13 +102,12 @@
      :left 0
      :right 0
      :background (rgba 0 0 0 0.7)}
-    [:>.player
+    [:>iframe
      {:position :absolute
       :top 0
       :bottom 0
       :left 0
       :right 0
-      :background :green
-      :width (percent 50)
-      :height (percent 50)
+      :width (px 960)
+      :height (px 585)
       :margin :auto}]]])

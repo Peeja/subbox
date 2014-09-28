@@ -6,9 +6,12 @@
             [cljs.core.async :as async :refer [chan put!]]
             [cognitect.transit :as t]
             [schema.core :as s :refer-macros [defschema]]
+            [subbox.player :as player]
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
             [om-tools.dom :as dom :include-macros true]))
+
+(player/enable!)
 
 (defonce app-state
   (atom {:selected-channel-ref nil
@@ -34,6 +37,14 @@
           next-list (<! (ajax-get next-url))]
       (om/transact! list-cursor
                     #(update-in next-list [:list/items] (partial into (:list/items %)))))))
+
+(defn direct-event?
+  "Returns true iff the given event occurred directly on the element where the
+  listener was attached. In other words, returns false iff the event bubbled
+  from a child element."
+  [event]
+  (= (aget event "target")
+     (aget event "currentTarget")))
 
 (defn preserve-line-breaks
   [text]
@@ -103,13 +114,16 @@
          (om/build-all video-list-item-view (:list/items videos))))))
 
 
-(defn direct-event?
-  "Returns true iff the given event occurred directly on the element where the
-  listener was attached. In other words, returns false iff the event bubbled
-  from a child element."
-  [event]
-  (= (aget event "target")
-     (aget event "currentTarget")))
+(defcomponentk player-view
+  [[:data [:youtube.video/id :as id]
+          :as video]
+   owner]
+  ;; Also did-update
+  (did-mount [_]
+    (player/player (om/get-node owner) id))
+  (render [_]
+    (dom/div nil)))
+
 
 (defcomponentk watch-screen-view
   [[:data [:youtube.video/snippet.title :as title]
@@ -118,8 +132,7 @@
   (render [_]
           (dom/div {:class "watch-screen"
                     :on-click #(when (direct-event? %) (put! (:watching shared) :none))}
-                   (dom/div {:class "player"}
-                            "Now playing: " title))))
+                   (->player-view video))))
 
 
 (defcomponentk app-view
