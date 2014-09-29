@@ -5,7 +5,6 @@
             [clojure.string :as string]
             [cljs.core.async :as async :refer [chan put!]]
             [cognitect.transit :as t]
-            [schema.core :as s :refer-macros [defschema]]
             [subbox.player :as player]
             [om.core :as om]
             [om-tools.core :refer-macros [defcomponentk]]
@@ -51,25 +50,13 @@
   (dom/img {:class "thumbnail" :src url :width width :height height}))
 
 
-(defschema List
-  {:list/items []
-   :list/next js/String})
-
-(defschema Channel
-  {:youtube.channel/id            js/String
-   :youtube.channel/snippet.title js/String
-   :videos List})
-
-(defschema ChannelListItem
-  (assoc Channel :selected? js/Boolean))
-
 
 (defcomponentk channel-list-item-view
   "A channel, as represented in the subscription list."
   [[:data {selected? false}
           [:youtube.channel/id :as id]
           [:youtube.channel/snippet.title :as title]
-          [:youtube.channel/snippet.thumbnails :as thumbnails]] ; :- ChannelListItem
+          [:youtube.channel/snippet.thumbnails :as thumbnails]]
    shared]
   (render [_]
     (dom/li {:class (when selected? "selected")
@@ -94,7 +81,7 @@
 (defcomponentk main-view
   "The main area of the page, including the list of videos."
   [[:data [:youtube.channel/snippet.title :as title]
-          videos]]; :- Channel]
+          videos]]
    (render [_]
      (when-not (seq (:list/items videos))
        (fetch! videos))
