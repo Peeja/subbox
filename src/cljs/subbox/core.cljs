@@ -12,10 +12,12 @@
 
 (player/enable!)
 
+
 (defonce app-state
   (atom {:selected-channel-ref nil
          :watching-video nil
-         :subscriptions []}))
+         :subscriptions {:list/items []
+                         :list/next (str "/subscriptions")}}))
 
 (defn fetch!
   "Fetches data for a list."
@@ -130,11 +132,14 @@
         (recur))))
 
   (render [_]
+    (when-not (seq (:list/items subscriptions))
+      (fetch! subscriptions))
+
     (let [selected? #(some #{selected-channel-ref} %)
-          selected-subscription (->> subscriptions
+          selected-subscription (->> (:list/items subscriptions)
                                      (filter selected?)
                                      first)
-          subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) subscriptions)]
+          subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) (:list/items subscriptions))]
 
       (dom/div {:class "app"}
 
@@ -152,9 +157,3 @@
   {:target (. js/document (getElementById "app"))
    :shared {:select (chan)
             :watching (chan)}})
-
-
-(aj/GET "/subscriptions"
-        {:handler (fn [new-subscriptions-transit]
-                    (let [new-subscriptions (t/read (t/reader :json) new-subscriptions-transit)]
-                      (swap! app-state assoc :subscriptions (vec new-subscriptions))))})

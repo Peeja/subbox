@@ -43,6 +43,11 @@
 (def ^:private yt-api
   (partial yt/api "subbox"))
 
+(defn list-response
+  [next-url items]
+  {:body {:list/items items
+          :list/next next-url}})
+
 (defn subscriptions [token]
   (->> (yt/my-subscriptions (yt-api token))
        (map (fn [{{{id :channelId} :resourceId :as snippet} :snippet}]
@@ -53,22 +58,20 @@
                :youtube.channel/snippet.title      (:title snippet)
                :youtube.channel/snippet.thumbnails (:thumbnails snippet)
                :videos {:list/items []
-                        :list/next (str "/subscriptions/" id "/videos")}}))))
+                        :list/next (str "/subscriptions/" id "/videos")}}))
+       (list-response nil)))
 
 (defn videos [token channel-id]
-  (let [items
-        (->> (yt/playlist-items-in-channel (yt-api token) channel-id)
-             (map (fn [{{{id :videoId} :resourceId :as snippet} :snippet}]
-                    ;; NOTE: We're faking this by pulling info off of the
-                    ;; playlist-item resource, even though we're pretending to be
-                    ;; getting a video resource. This will tide us over for the moment.
-                    {:youtube.video/id                  id
-                     :youtube.video/snippet.title       (:title snippet)
-                     :youtube.video/snippet.description (:description snippet)
-                     :youtube.video/snippet.thumbnails  (:thumbnails snippet)})))]
-    ;; This :body is unfortunate and inconsistent.
-    {:body {:list/items items
-            :list/next nil}}))
+  (->> (yt/playlist-items-in-channel (yt-api token) channel-id)
+       (map (fn [{{{id :videoId} :resourceId :as snippet} :snippet}]
+              ;; NOTE: We're faking this by pulling info off of the
+              ;; playlist-item resource, even though we're pretending to be
+              ;; getting a video resource. This will tide us over for the moment.
+              {:youtube.video/id                  id
+               :youtube.video/snippet.title       (:title snippet)
+               :youtube.video/snippet.description (:description snippet)
+               :youtube.video/snippet.thumbnails  (:thumbnails snippet)}))
+       (list-response nil)))
 
 
 (def google-time-writer
