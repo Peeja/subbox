@@ -18,25 +18,15 @@
          :watching-video nil
          :subscriptions []}))
 
-(defn ajax-get
-  "Makes a GET request. Returns a channel which will deliver the result.
-  Currently assumes the response is transit, and parses it."
-  [url]
-  (let [c (chan)]
-    (aj/GET url
-            {:handler (fn [response-transit]
-                        (->> response-transit
-                             (put! c)))})
-    c))
-
 (defn fetch!
   "Fetches data for a list."
   [list-cursor]
-  (go
-    (let [next-url (:list/next @list-cursor)
-          next-list (<! (ajax-get next-url))]
-      (om/transact! list-cursor
-                    #(update-in next-list [:list/items] (partial into (:list/items %)))))))
+  (aj/GET (:list/next list-cursor)
+          {:handler (fn [next-list]
+                      (om/transact! list-cursor
+                                    #(update-in next-list
+                                                [:list/items]
+                                                (partial into (:list/items %)))))}))
 
 (defn direct-event?
   "Returns true iff the given event occurred directly on the element where the
