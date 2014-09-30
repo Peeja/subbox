@@ -10,16 +10,33 @@
       (gdom/appendChild (.-body js/document) script)
       script)))
 
-(def ^private ready-state (atom false))
-(set! js/onYouTubeIframeAPIReady #(reset! ready-state true))
+(let [ready-state (atom false)]
+  (set! js/onYouTubeIframeAPIReady #(reset! ready-state true))
+  (defn ready?
+    "Returns true iff the iframe API has loaded. Using the API before it's ready
+    will throw an exception."
+    []
+    @ready-state))
 
-(defn ready?
-  "Returns true iff the iframe API has loaded. Using the API before it's ready
-  will rais an exception."
-  []
-  @ready-state)
+
+(defn- player-state-name
+  "Translates a player state integer into a corresponding keyword."
+  [state]
+  ({js/YT.PlayerState.UNSTARTED :unstarted
+    js/YT.PlayerState.ENDED     :ended
+    js/YT.PlayerState.PLAYING   :playing
+    js/YT.PlayerState.PAUSED    :paused
+    js/YT.PlayerState.BUFFERING :buffering
+    js/YT.PlayerState.CUED      :cued}
+   state))
 
 (defn player
   "Returns a new YT.Player, built on the given DOM element."
-  [element video-id]
-  (js/YT.Player. element #js {:videoId video-id}))
+  [element video-id & {:keys [player-vars on-state-change]}]
+  (js/YT.Player. element (clj->js {:videoId video-id
+                                   :playerVars (or player-vars {})
+                                   :events (when on-state-change
+                                             {:onStateChange (fn [event]
+                                                (-> (.-data event)
+                                                    player-state-name
+                                                    on-state-change))})})))

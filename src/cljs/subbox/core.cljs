@@ -59,10 +59,10 @@
           [:youtube.channel/id :as id]
           [:youtube.channel/snippet.title :as title]
           [:youtube.channel/snippet.thumbnails :as thumbnails]]
-   shared]
+   [:shared channels]]
   (render [_]
     (dom/li {:class (when selected? "selected")
-             :on-click #(put! (:select shared) [:youtube.channel/id id])}
+             :on-click #(put! (:select channels) [:youtube.channel/id id])}
             (thumbnail (:default thumbnails))
             (dom/span {:class "title"} title))))
 
@@ -71,10 +71,11 @@
           [:youtube.video/snippet.description :as description]
           [:youtube.video/snippet.thumbnails :as thumbnails]
           :as video]
-   [:shared watching]]
+   [:shared channels]]
   (render [_]
-    (dom/li {:on-click #(put! watching video)}
-      (dom/article {:class "video"}
+    (dom/li {:on-click #(put! (:watching channels) video)}
+      (dom/article {:class (dom/class-set {"video"   true
+                                           "watched" (:subbox.video/watched video)})}
         (thumbnail (:medium thumbnails))
         (dom/div {:class "info"}
           (dom/h1 {:class "title"} title)
@@ -96,10 +97,15 @@
 (defcomponentk player-view
   [[:data [:youtube.video/id :as id]
           :as video]
+   [:shared channels]
    owner]
   ;; Also did-update
   (did-mount [_]
-    (player/player (om/get-node owner) id))
+    (player/player (om/get-node owner) id
+                   :player-vars {:autoplay 1}
+                   :on-state-change (fn [event-type]
+                                      (when (= :ended event-type)
+                                        (put! (:watched channels) video)))))
   (render [_]
     (dom/div nil)))
 
@@ -107,10 +113,10 @@
 (defcomponentk watch-screen-view
   [[:data [:youtube.video/snippet.title :as title]
           :as video]
-   shared]
+   [:shared channels]]
   (render [_]
           (dom/div {:class "watch-screen"
-                    :on-click #(when (direct-event? %) (put! (:watching shared) :none))}
+                    :on-click #(when (direct-event? %) (put! (:watching channels) :none))}
                    (->player-view video))))
 
 
@@ -119,16 +125,22 @@
   [[:data selected-channel-ref
           watching-video
           subscriptions :as app]
-   shared]
+   [:shared channels]]
 
   (will-mount [_]
     (go-loop []
-      (let [new-selected-channel-ref (<! (:select shared))]
+      (let [new-selected-channel-ref (<! (:select channels))]
         (om/update! app :selected-channel-ref new-selected-channel-ref)
         (recur)))
+
     (go-loop []
-      (let [new-watching-video (<! (:watching shared))]
+      (let [new-watching-video (<! (:watching channels))]
         (om/update! app :watching-video (when (not= :none new-watching-video) new-watching-video))
+        (recur)))
+
+    (go-loop []
+      (let [video (<! (:watched channels))]
+        (om/update! video :subbox.video/watched true)
         (recur))))
 
   (render [_]
@@ -155,5 +167,6 @@
 
 (om/root app-view app-state
   {:target (. js/document (getElementById "app"))
-   :shared {:select (chan)
-            :watching (chan)}})
+   :shared {:channels {:select   (chan)
+                       :watching (chan)
+                       :watched  (chan)}}})

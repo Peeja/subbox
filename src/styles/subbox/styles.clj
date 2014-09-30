@@ -78,6 +78,8 @@
        :margin {:bottom (px 40)}}
       [:article.video
        clearfix
+       [:&.watched
+        {:opacity 0.5}]
        [:>img.thumbnail
         {:float :left
          :margin {:right (px 20)}}]
