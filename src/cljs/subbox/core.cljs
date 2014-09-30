@@ -14,20 +14,25 @@
 
 
 (defonce app-state
-  (atom {:selected-channel-ref nil
+  (atom {:selected-channel-id nil
          :watching-video nil
+         :entities {:channels {}
+                    :videos {}}
          :subscriptions {:list/items []
                          :list/next (str "/subscriptions")}}))
 
 (defn fetch!
   "Fetches data for a list."
-  [list-cursor]
+  [list-cursor entity-store-cursor id-fn]
   (aj/GET (:list/next list-cursor)
           {:handler (fn [next-list]
+                      (om/transact! entity-store-cursor
+                                    #(into % (map (juxt id-fn identity) (:list/items next-list))))
                       (om/transact! list-cursor
-                                    #(update-in next-list
+                                    (fn [old-items]
+                                      (update-in next-list
                                                 [:list/items]
-                                                (partial into (:list/items %)))))}))
+                                                #(into (:list/items old-items) (map id-fn %))))))}))
 
 (defn direct-event?
   "Returns true iff the given event occurred directly on the element where the
@@ -62,7 +67,7 @@
    [:shared channels]]
   (render [_]
     (dom/li {:class (when selected? "selected")
-             :on-click #(put! (:select channels) [:youtube.channel/id id])}
+             :on-click #(put! (:select channels) id)}
             (thumbnail (:default thumbnails))
             (dom/span {:class "title"} title))))
 
@@ -83,15 +88,16 @@
 
 (defcomponentk main-view
   "The main area of the page, including the list of videos."
-  [[:data [:youtube.channel/snippet.title :as title]
-          videos]]
+  [[:data [:channel [:youtube.channel/snippet.title :as title]
+                    videos]
+          entities]]
    (render [_]
      (when-not (seq (:list/items videos))
-       (fetch! videos))
+       (fetch! videos (:videos entities) :youtube.video/id))
      (dom/section {:class "main"}
        (dom/h1 title)
        (dom/ul {:class "videos"}
-         (om/build-all video-list-item-view (:list/items videos))))))
+         (om/build-all video-list-item-view (mapv (:videos entities) (:list/items videos)))))))
 
 
 (defcomponentk player-view
@@ -122,15 +128,16 @@
 
 (defcomponentk app-view
   "The entire application."
-  [[:data selected-channel-ref
+  [[:data selected-channel-id
           watching-video
+          entities
           subscriptions :as app]
    [:shared channels]]
 
   (will-mount [_]
     (go-loop []
-      (let [new-selected-channel-ref (<! (:select channels))]
-        (om/update! app :selected-channel-ref new-selected-channel-ref)
+      (let [new-selected-channel-id (<! (:select channels))]
+        (om/update! app :selected-channel-id new-selected-channel-id)
         (recur)))
 
     (go-loop []
@@ -145,24 +152,19 @@
 
   (render [_]
     (when-not (seq (:list/items subscriptions))
-      (fetch! subscriptions))
+      (fetch! subscriptions (:channels entities) :youtube.channel/id))
 
-    (let [selected? #(some #{selected-channel-ref} %)
-          selected-subscription (->> (:list/items subscriptions)
-                                     (filter selected?)
-                                     first)
-          subscriptions-with-selected (map #(assoc % :selected? (= % selected-subscription)) (:list/items subscriptions))]
-
+    (let [selected-channel ((:channels entities) selected-channel-id)
+          channels (map (:channels entities) (:list/items subscriptions))
+          channels-with-selected (mapv #(assoc % :selected? (= % selected-channel)) channels)]
       (dom/div {:class "app"}
-
         (when watching-video
           (->watch-screen-view watching-video))
-
         (dom/ul {:class "subscriptions"}
                 (om/build-all channel-list-item-view
-                              subscriptions-with-selected))
-        (when selected-subscription
-          (->main-view selected-subscription))))))
+                              channels-with-selected))
+        (when selected-channel
+          (->main-view {:channel selected-channel :entities entities}))))))
 
 
 (om/root app-view app-state
