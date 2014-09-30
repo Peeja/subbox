@@ -48,7 +48,7 @@
 
 
 (defn thumbnail
-  [{:keys [url width height] :as thmb}]
+  [{:keys [url width height]}]
   (dom/img {:class "thumbnail" :src url :width width :height height}))
 
 
