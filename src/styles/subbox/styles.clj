@@ -26,11 +26,21 @@
   [:body
    {:font {:family "Open Sans"
            :weight 400
-           :size (px 16)}}]
+           :size (px 16)}}
+
+   [:>header
+    {:padding (px 10)}
+    [:>h1
+     heading-font
+     {:float :left
+      :font-size (px 32)}]
+    [:>a.logout
+     {:display :block
+      :float :right }]]]
 
   [:.app
    {:position :absolute
-    :top 0
+    :top (px 50)
     :bottom 0
     :right 0
     :left 0}
