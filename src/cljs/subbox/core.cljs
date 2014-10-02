@@ -21,11 +21,19 @@
          :subscriptions {:list/items []
                          :list/next (str "/subscriptions")}}))
 
+
+(defn on-ajax-error
+  [{:keys [status status-text]}]
+  (when (= 401 status)
+    ;; We're logged out, so log in again.
+    (js/location.assign "/login")))
+
 (defn fetch!
   "Fetches data for a list."
   [list-cursor entity-store-cursor id-fn]
   (aj/GET (:list/next list-cursor)
-          {:handler (fn [next-list]
+          {:error-handler on-ajax-error
+           :handler (fn [next-list]
                       (om/transact! entity-store-cursor
                                     #(into % (map (juxt id-fn identity) (:list/items next-list))))
                       (om/transact! list-cursor

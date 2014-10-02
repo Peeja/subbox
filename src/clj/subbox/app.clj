@@ -14,7 +14,8 @@
             [ring.middleware.transit :as ring-transit]
             [ring.util.response :as resp]
             [cognitect.transit :as transit]
-            [subbox.youtube :as yt]))
+            [subbox.youtube :as yt])
+  (:import (com.google.api.client.http HttpResponseException)))
 
 (def
   ^{:dynamic true
@@ -78,6 +79,17 @@
   (let [as-int (fn [v] (.getValue v))]
   (transit/write-handler "m" as-int (comp str as-int))))
 
+(defn wrap-unauthorized
+  "If the handler throws a Google 401 Unauthorized error, respond with a 401."
+  [handler]
+  (fn [request]
+    (try (handler request)
+      (catch HttpResponseException e
+        (if (= 401 (.getStatusCode e))
+          {:status 401
+           :body "Unauthorized"}
+          (throw e))))))
+
 (defn wrap-transit-response
   [handler & [{:as options}]]
   (ring-transit/wrap-transit-response handler
@@ -88,7 +100,7 @@
 (defroutes app-routes
   (GET "/" req (or-login-prompt page req))
 
-  (wrap-transit-response
+  ((comp wrap-unauthorized wrap-transit-response)
     (context "/subscriptions" []
       (GET "/" req
         (if-let [identity (friend/identity req)]
