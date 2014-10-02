@@ -32,6 +32,7 @@
     [:head
      [:title "The Sub Box"]]
     [:body
+     [:h1 "Welcome to Subbox."]
      [:a {:href "/login"} "Login with Google"]]))
 
 (defn or-login-prompt [handler req]
