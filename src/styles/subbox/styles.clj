@@ -45,6 +45,9 @@
     :right 0
     :left 0}
 
+   [:>div.no-subscriptions-found
+    {:margin (px 10)}]
+
    [:>ul.subscriptions
     block-list
     {:position :absolute

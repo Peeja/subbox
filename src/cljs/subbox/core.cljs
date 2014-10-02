@@ -134,6 +134,12 @@
                    (->player-view video))))
 
 
+(defn empty-paged-list?
+  [paged-list]
+  (and (empty? (:list/items paged-list))
+       (nil? (:list/next paged-list))))
+
+
 (defcomponentk app-view
   "The entire application."
   [[:data selected-channel-id
@@ -168,6 +174,13 @@
       (dom/div {:class "app"}
         (when watching-video
           (->watch-screen-view watching-video))
+
+        (when (empty-paged-list? subscriptions)
+          (dom/div {:class "no-subscriptions-found"}
+                   "No YouTube subscriptions found."
+                   (dom/br nil)
+                   "Go subscribe to something, then come back."))
+
         (dom/ul {:class "subscriptions"}
                 (om/build-all channel-list-item-view
                               channels-with-selected))
