@@ -19,12 +19,12 @@
     :clear   :both}])
 
 (defstyles heading-font
-  {:font {:family "Nunito"
+  {:font {:family "Nunito, sans-serif"
           :weight 400}})
 
 (defstyles screen
   [:body
-   {:font {:family "Open Sans"
+   {:font {:family "Open Sans, sans-serif"
            :weight 400
            :size (px 16)}}
 
